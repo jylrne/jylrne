@@ -108,8 +108,9 @@ main{position:relative;z-index:1;width:100%;max-width:400px}
 #bgm{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 #bgm video,#bgm img{width:100%;height:100%;object-fit:cover;filter:brightness(.5)}
 #bgrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
-#live-btn{font:inherit;background:var(--ink);color:var(--card);border:0;border-radius:999px;padding:4px 16px;cursor:pointer;margin:4px 0}
+#cam-btn{font:inherit;background:var(--ink);color:var(--card);border:0;border-radius:999px;padding:4px 16px;cursor:pointer;margin:4px 0}
 #live{position:relative;overflow:hidden}
+#lv-wrap video{display:block;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;object-fit:cover}
 #lv-wrap iframe{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:10px;background:#000}
 #lv-heart{font:inherit;font-size:1.1rem;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:4px 16px;cursor:pointer;margin:10px 0}
 .fh{position:absolute;bottom:90px;color:#c98f9e;pointer-events:none;animation:fh 1.6s ease-out forwards;font-size:1.4rem}
@@ -120,13 +121,28 @@ main{position:relative;z-index:1;width:100%;max-width:400px}
 .notes i{position:absolute;bottom:-40px;font-style:normal;color:var(--accent);opacity:0;animation:fl linear infinite;text-shadow:0 0 8px rgba(255,255,255,.25)}
 @keyframes fl{0%{transform:translate(0,0) rotate(-12deg);opacity:0}12%{opacity:.5}50%{transform:translate(18px,-55vh) rotate(12deg)}88%{opacity:.5}100%{transform:translate(-14px,-115vh) rotate(-12deg);opacity:0}}
 @media (prefers-reduced-motion:reduce){.notes{display:none}}
+.cml{max-height:340px;overflow-y:auto}
+@media (min-width:600px){main{max-width:520px}.top h1{font-size:2.8rem}}
+@media (min-width:960px){
+  body{padding:36px 32px 56px}
+  main{max-width:1120px;display:grid;grid-template-columns:400px minmax(0,1fr);gap:20px 28px;align-items:start}
+  .top{grid-column:1/-1;margin-bottom:0}.top h1{font-size:3.2rem}
+  .card{grid-column:1;grid-row:2/span 6;position:sticky;top:12px}
+  .show{grid-column:2;margin-top:0}
+  .foot{grid-column:1/-1}
+  #live:not([hidden]){display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);column-gap:16px;align-items:start}
+  #live h2{grid-column:1/-1}
+  #lv-wrap{grid-column:1}#lv-heart{grid-column:1;justify-self:start}
+  #lv-cm{grid-column:2;grid-row:2/span 2}
+  #lv-cm .cml{max-height:420px}
+}
 .foot{margin-top:16px;text-align:center;color:var(--dim);font-size:.8rem;font-style:italic}
 input[type=file]{display:none}
 </style>
 </head>
 <body>
 <div id="bar" hidden><button id="edit">edit</button><button id="save" hidden>save</button><button id="cancel" hidden>cancel</button><button id="out">log out</button></div>
-<script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she","since":"forever","bio":"hey, hi's and the hellos.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":{"url":"uploads/1793096893426-jade.gif","type":"image/gif"},"banner":{"url":"uploads/1793096897275-notes.gif","type":"image/gif"},"episodes":[],"posts":[],"badges":["♱"],"fb":""}</script>
+<script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she/her","since":"forever","bio":"hello, this is my little corner of the internet. nobody else lives here.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":null,"banner":null,"episodes":[],"posts":[]}</script>
 <div id="bgm" aria-hidden="true"></div>
 <div class="notes" id="notes" aria-hidden="true"></div>
 <main>
@@ -172,7 +188,7 @@ input[type=file]{display:none}
         <input id="i-name" placeholder="display name"><input id="i-handle" placeholder="@handle ✦ pronouns"><input id="i-badges" placeholder="badges, separated by commas">
         <textarea id="i-bio" rows="3" placeholder="about me"></textarea>
         <input id="i-fb" placeholder="firebase database url (for likes + comments)"><div id="bgrow"><button id="bg-pick" type="button">background image/video</button><button id="bg-rm" type="button">remove</button><input type="color" id="bg-c" value="#262626"><button id="bg-cr" type="button">reset color</button></div>
-        <input id="i-live" placeholder="your YouTube or Twitch live link"><button id="live-btn" type="button">go live</button>
+        <button id="cam-btn" type="button">go live (camera)</button>
         <textarea id="i-links" rows="3" placeholder="links, one per line: label | https://..."></textarea>
         <p style="color:var(--dim);font-size:.85rem;margin-top:6px">Tap the banner or avatar to swap in a video or image.</p>
       </div>
@@ -299,7 +315,7 @@ function setEditing(on){
   editing=on;document.body.classList.toggle("editing",on);
   $("ed").hidden=!on;renderTw();$("addep").hidden=!on;if(!on)$("epform").hidden=true;renderEps();$("bh").hidden=!on;$("edit").hidden=on;$("save").hidden=!on;$("cancel").hidden=!on;
   if(on){
-    $("i-name").value=state.name;$("i-handle").value=state.handle;$("i-badges").value=(state.badges||DEFB).join(", ");$("i-fb").value=state.fb||"";$("i-live").value=(state.live&&state.live.url)||"";$("live-btn").textContent=(state.live&&state.live.on)?"end live":"go live";$("i-bio").value=state.bio;
+    $("i-name").value=state.name;$("i-handle").value=state.handle;$("i-badges").value=(state.badges||DEFB).join(", ");$("i-fb").value=state.fb||"";$("cam-btn").textContent=camStream?"end live":"go live (camera)";$("i-bio").value=state.bio;
     $("i-links").value=state.links.map(function(l){return l.label+" | "+l.url}).join("\n");
   }
 }
@@ -400,7 +416,7 @@ function cmWidget(id){
   var n=document.createElement("input");n.placeholder="your name";n.maxLength=30;
   var t=document.createElement("textarea");t.rows=2;t.maxLength=500;t.placeholder="add a comment";
   var b=document.createElement("button");b.type="button";b.className="cmgo";b.textContent="post";
-  var L=document.createElement("div");w.append(n,t,b,L);
+  var L=document.createElement("div");L.className="cml";w.append(n,t,b,L);
   function load(){fb("comments/"+id).then(function(o){o=o||{};L.textContent="";
     Object.keys(o).sort().reverse().forEach(function(k){var c=o[k],d=document.createElement("div");d.className="cmt";
       if(TOKEN){var x=document.createElement("button");x.textContent="✕";x.onclick=function(){fb("comments/"+id+"/"+k,"DELETE").then(load)};d.appendChild(x)}
@@ -430,12 +446,79 @@ $("cm-go").onclick=function(){
   var b=$("cm-go");b.disabled=true;
   fb("comments/"+id,"POST",{n:n.slice(0,30),x:x.slice(0,500),t:Date.now()}).then(function(){$("cm-in").value="";loadCm(id)}).catch(function(){alert("Couldn’t post. Try again.")}).then(function(){b.disabled=false});
 };
-var lvId="",lvN=0;
+var lvId="",lvN=0,camId="",viewCam="",camStream=null,camPeers={},camSeen={},camTimers=[],vPC=null,vN=0,lastT=0,lastSeen=0;
+var RTC={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};
+function iceDone(pc){return new Promise(function(res){if(pc.iceGatheringState==="complete")return res();pc.onicegatheringstatechange=function(){if(pc.iceGatheringState==="complete")res()};setTimeout(res,3500)})}
+function lvVideo(){var W=$("lv-wrap");W.textContent="";W.removeAttribute("data-src");var v=document.createElement("video");v.autoplay=true;v.playsInline=true;v.setAttribute("playsinline","");v.muted=true;v.controls=true;W.appendChild(v);return v}
+async function startCam(){
+  if(camStream)return;
+  if(!FBU()){alert("Add your Firebase link in the edit panel and save first. Live needs it.");return}
+  if(!navigator.mediaDevices||!window.RTCPeerConnection){alert("This browser can’t go live.");return}
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:true})}catch(e){camStream=null;alert("Couldn’t open the camera: "+(e&&e.message||e));return}
+  camId=Date.now().toString(36);camSeen={};
+  var v=lvVideo();v.srcObject=camStream;v.controls=false;v.play().catch(function(){});
+  try{await fb("livecam/status","PUT",{on:true,id:camId,t:Date.now()})}catch(e){}
+  renderLive();$("cam-btn").textContent="end live";
+  camTimers.push(setInterval(function(){fb("livecam/status","PUT",{on:true,id:camId,t:Date.now()}).catch(function(){})},8000));
+  camTimers.push(setInterval(pollOffers,2000));
+}
+function pollOffers(){var id=camId;if(!id)return;
+  fb("livecam/"+id+"/offers").then(function(o){if(!o||id!==camId)return;
+    Object.keys(o).forEach(function(k){if(camSeen[k])return;camSeen[k]=1;if(Object.keys(camPeers).length>=6)return;answerPeer(id,k,o[k].sdp)})}).catch(function(){})}
+async function answerPeer(id,k,sdp){
+  try{var pc=new RTCPeerConnection(RTC);camPeers[k]=pc;
+    camStream.getTracks().forEach(function(t){pc.addTrack(t,camStream)});
+    pc.onconnectionstatechange=function(){if(pc.connectionState==="failed"||pc.connectionState==="closed"){try{pc.close()}catch(e){}delete camPeers[k]}};
+    await pc.setRemoteDescription({type:"offer",sdp:sdp});var a=await pc.createAnswer();await pc.setLocalDescription(a);await iceDone(pc);
+    await fb("livecam/"+id+"/answers/"+k,"PUT",{sdp:pc.localDescription.sdp});fb("livecam/"+id+"/offers/"+k,"DELETE").catch(function(){});
+  }catch(e){delete camPeers[k]}
+}
+function endCam(){
+  camTimers.forEach(clearInterval);camTimers=[];
+  Object.keys(camPeers).forEach(function(k){try{camPeers[k].close()}catch(e){}});camPeers={};
+  if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null}
+  camId="";fb("livecam","DELETE").catch(function(){});$("cam-btn").textContent="go live (camera)";renderLive();
+}
+$("cam-btn").onclick=function(){camStream?endCam():startCam()};
+function pollCam(){
+  if(!FBU()||camStream)return;
+  fb("livecam/status").then(function(st){
+    var now=Date.now();
+    if(!st||!st.on){lastT=0;lastSeen=0}
+    else if(lastT===0){lastT=st.t;lastSeen=0}
+    else if(st.t!==lastT){lastT=st.t;lastSeen=now}
+    var alive=st&&st.on&&lastSeen&&now-lastSeen<30000;
+    if(alive&&viewCam!==st.id)startView(st.id);
+    else if(!alive&&viewCam)stopView();
+  }).catch(function(){});
+}
+function startView(id){stopView(true);viewCam=id;var v=lvVideo();renderLive();connectView(id,v)}
+function stopView(keep){viewCam="";if(vPC){try{vPC.close()}catch(e){}vPC=null}if(!keep)renderLive()}
+async function connectView(id,v){
+  if(viewCam!==id)return;
+  try{
+    var pc=new RTCPeerConnection(RTC);if(vPC){try{vPC.close()}catch(e){}}vPC=pc;
+    pc.addTransceiver("video",{direction:"recvonly"});pc.addTransceiver("audio",{direction:"recvonly"});
+    pc.ontrack=function(e){v.srcObject=e.streams[0];v.play().catch(function(){})};
+    pc.onconnectionstatechange=function(){if(pc.connectionState==="failed"||pc.connectionState==="closed"){setTimeout(function(){if(viewCam===id&&vPC===pc)connectView(id,v)},3000)}};
+    var o=await pc.createOffer();await pc.setLocalDescription(o);await iceDone(pc);
+    var k=vid+"-"+(++vN);await fb("livecam/"+id+"/offers/"+k,"PUT",{sdp:pc.localDescription.sdp});
+    for(var i=0;i<40&&viewCam===id&&vPC===pc;i++){
+      await new Promise(function(r){setTimeout(r,1500)});
+      var a=await fb("livecam/"+id+"/answers/"+k);
+      if(a&&a.sdp){await pc.setRemoteDescription({type:"answer",sdp:a.sdp});fb("livecam/"+id+"/answers/"+k,"DELETE").catch(function(){});return}
+    }
+    if(viewCam===id&&vPC===pc)connectView(id,v);
+  }catch(e){setTimeout(function(){connectView(id,v)},4000)}
+}
 function embedUrl(u){var m;u=String(u||"").trim();
   if(m=u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|live\/|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/))return"https://www.youtube.com/embed/"+m[1]+"?autoplay=1&playsinline=1";
   if(m=u.match(/twitch\.tv\/(\w+)/))return"https://player.twitch.tv/?channel="+m[1]+"&parent="+location.hostname+"&autoplay=true";
   return""}
 function renderLive(){
+  if(camId||viewCam){var lid=camId||viewCam;$("live").hidden=false;var okf=!!FBU();$("lv-heart").hidden=$("lv-cm").hidden=!okf;
+    if(okf&&lvId!==lid){lvId=lid;lvN=0;$("lv-cm").textContent="";$("lv-cm").appendChild(cmWidget("live"+lid));$("lv-heart").textContent="♡"}
+    return}
   var S=$("live"),L=state.live,src=L&&L.on?embedUrl(L.url):"";
   if(!src){S.hidden=true;$("lv-wrap").textContent="";lvId="";return}
   S.hidden=false;var W=$("lv-wrap");
@@ -448,18 +531,9 @@ $("lv-heart").onclick=function(){
   lvN++;if(TOKEN)this.textContent="♥ "+lvN;else this.textContent="♥";
   var h=document.createElement("span");h.className="fh";h.textContent="♥";h.style.left=(20+Math.random()*60)+"%";$("live").appendChild(h);setTimeout(function(){h.remove()},1700);
 };
-$("live-btn").onclick=function(){
-  if(state.live&&state.live.on){state.live={on:false};doSave();return}
-  var u=$("i-live").value.trim();
-  if(!embedUrl(u)){alert("Paste a YouTube or Twitch link to your live stream.");return}
-  state.live={on:true,url:u,id:Date.now().toString(36)};doSave();
-};
 if(TOKEN)setInterval(function(){if(!lvId||!FBU())return;
   fetch(FBU()+"/hearts/"+lvId+".json?shallow=true").then(function(r){return r.json()}).then(function(o){lvN=o?Object.keys(o).length:0;$("lv-heart").textContent="♥ "+lvN}).catch(function(){})},10000);
-else setInterval(function(){
-  fetch(location.pathname+"?_="+Date.now()).then(function(r){return r.text()}).then(function(t){
-    var m=t.match(/<script type="application\/json" id="state">([\s\S]*?)<\/script>/);if(!m)return;
-    var st=JSON.parse(m[1]);state.live=st.live;renderLive()}).catch(function(){})},30000);
+else setInterval(pollCam,5000);
 var ef={i:-1,v:null,t:null};
 function openEf(i){
   ef={i:i,v:null,t:null};var ep=i>=0?state.episodes[i]:null;
@@ -510,4 +584,3 @@ render();renderEps();renderTw();renderLive();
 if(TOKEN){$("bar").hidden=false;$("composer").hidden=false;$("login").hidden=true}
 else $("out").hidden=true;
 </script></body></html>
-i

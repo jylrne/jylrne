@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>jylrne</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#262626;--card:#1b1d20;--ink:#ece8e1;--dim:#9a968f;--line:#3a3b3d;--accent:#cfc9bd;
+  --noise:.35;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#d9d6d0;--card:#efece6;--ink:#222;--dim:#6d6a64;--line:#bdb9b0;--accent:#3a3a3a;--noise:.2}}
+:root[data-theme="light"]{--bg:#d9d6d0;--card:#efece6;--ink:#222;--dim:#6d6a64;--line:#bdb9b0;--accent:#3a3a3a;--noise:.2}
+*{box-sizing:border-box}
+html{color-scheme:dark light}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:'Alegreya',Georgia,serif;
+  display:flex;flex-direction:column;align-items:center;padding:28px 16px 40px;position:relative}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:var(--noise);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .5 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>")}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.45))}
+main{position:relative;z-index:1;width:100%;max-width:400px}
+.top{text-align:center;margin-bottom:18px}
+.top h1{margin:0;font-weight:400;font-size:2.4rem;letter-spacing:.14em;text-transform:lowercase}
+.top p{margin:2px 0 0;color:var(--dim);font-style:italic;font-size:.95rem}
+.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#b8b2a6;margin-right:6px;animation:b 1.6s infinite}
+@keyframes b{50%{opacity:.2}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:visible;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.banner{height:140px;border-radius:14px 14px 0 0;overflow:hidden;position:relative;background:radial-gradient(circle at 30% 40%,#4a4a4d,#17181a)}
+.banner video,.banner img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05)}
+.hint{position:absolute;right:8px;bottom:6px;font-size:.7rem;color:var(--dim);opacity:.8}
+.avwrap{position:relative;width:104px;height:104px;margin:-52px 0 0 18px}
+.editing .banner,.editing .avwrap{cursor:pointer}
+#bar{position:fixed;z-index:5;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;gap:8px}
+#bar button{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:4px 14px;cursor:pointer}
+.ed input,.ed textarea{width:100%;font:inherit;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:3px 0}
+[hidden]{display:none!important}
+.av{position:absolute;inset:12px;border-radius:50%;overflow:hidden;border:4px solid var(--card);
+  background:radial-gradient(circle,#6b6b6b,#1a1a1a)}
+.av video,.av img{width:100%;height:100%;object-fit:cover;filter:grayscale(1)}
+.deco{position:absolute;inset:0;pointer-events:none;width:100%;height:100%;overflow:visible}
+.status{position:absolute;right:14px;bottom:14px;width:22px;height:22px;border-radius:50%;background:var(--card);
+  display:grid;place-items:center}
+.status i{width:12px;height:12px;border-radius:50%;background:#a9b39f}
+.body{padding:8px 18px 18px}
+.name{font-size:1.6rem;font-weight:700;margin:4px 0 0}
+.handle{color:var(--dim);font-size:.95rem}
+.badges{display:flex;gap:6px;margin:10px 0}
+.badge{border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:.78rem;color:var(--accent)}
+.sec{background:rgba(127,127,127,.08);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+.sec h2{margin:0 0 6px;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:700}
+.sec p{margin:0;line-height:1.45}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.links a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:.9rem}
+.links a:hover{background:rgba(127,127,127,.18)}
+.show{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.show h2{margin:0 0 10px;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+#player{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block;filter:grayscale(.85)}
+#ptitle{margin:8px 0 4px;font-size:1.15rem;font-weight:700}
+.ep{display:flex;align-items:center;gap:10px;padding:8px 6px;border-top:1px solid var(--line);cursor:pointer}
+.ep.on{color:var(--accent)}.ep b{color:var(--dim);font-weight:400;min-width:34px}.ep span{flex:1}
+.ep button{font:inherit;background:none;border:0;color:var(--dim);cursor:pointer}
+.empty{color:var(--dim);font-style:italic;padding:10px 0}
+#addep{font:inherit;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;margin-top:6px}
+.tw{padding:10px 4px;border-top:1px solid var(--line)}
+.tw p{margin:0 0 4px;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+.tw small{color:var(--dim);font-size:.78rem}.tw button{font:inherit;background:none;border:0;color:var(--dim);cursor:pointer;float:right}
+#composer textarea{width:100%;font:inherit;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;resize:none}
+#composer div{display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px;color:var(--dim);font-size:.85rem}
+#tw-go{font:inherit;background:var(--ink);color:var(--card);border:0;border-radius:999px;padding:4px 16px;cursor:pointer}
+
+.card{position:relative;margin-top:100px}
+.card::before{content:"";position:absolute;inset:-8px;border:1.5px solid var(--accent);border-top-color:transparent;border-radius:0 0 22px 22px;opacity:.5;pointer-events:none}
+.arch{position:absolute;z-index:3;left:-8px;width:calc(100% + 16px);bottom:calc(100% + 8px);height:auto;pointer-events:none;overflow:visible;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.st{transform-box:fill-box;transform-origin:center;animation:tw 3.2s ease-in-out infinite}
+.st:nth-of-type(2){animation-delay:.8s}.st:nth-of-type(3){animation-delay:1.6s}.st:nth-of-type(4){animation-delay:2.4s}
+.cn{position:absolute;z-index:3;font-style:normal;font-size:.95rem;color:var(--accent);line-height:1;animation:tw 3.2s ease-in-out infinite;text-shadow:0 0 6px rgba(255,255,255,.3)}
+.cn.a{top:40%;left:-15px}.cn.b{top:40%;right:-15px;animation-delay:.8s}.cn.c{bottom:-15px;left:-15px;animation-delay:1.6s}.cn.d{bottom:-15px;right:-15px;animation-delay:2.4s}
+@keyframes tw{50%{opacity:.3;transform:scale(.75)}}
+.name{background:linear-gradient(100deg,var(--ink) 40%,#fff 50%,var(--ink) 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sh 5s linear infinite}
+@keyframes sh{from{background-position:120% 0}to{background-position:-120% 0}}
+@media (prefers-reduced-motion:reduce){.cn,.st,.name{animation:none}.name{color:var(--ink)}}
+.foot{margin-top:16px;text-align:center;color:var(--dim);font-size:.8rem;font-style:italic}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div id="bar" hidden><button id="edit">edit</button><button id="save" hidden>save</button><button id="cancel" hidden>cancel</button></div>
+<script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she/her","since":"forever","bio":"hello, this is my little corner of the internet. nobody else lives here.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":null,"banner":null,"episodes":[],"posts":[]}</script>
+<main>
+  <div class="top">
+    <h1>jylrne</h1>
+  </div>
+
+  <div class="card"><svg class="arch" viewBox="0 0 400 80" fill="none" aria-hidden="true">
+<defs><linearGradient id="mt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1ede4"></stop><stop offset=".5" stop-color="#a7a398"></stop><stop offset="1" stop-color="#5d5a54"></stop></linearGradient></defs>
+<path d="M6 80C6 46 92 42 152 31Q200 20 248 31C308 42 394 46 394 80L386 80C386 54 306 50 248 41Q200 32 152 41C94 50 14 54 14 80Z" fill="#17181a" stroke="url(#mt)" stroke-width="1.6"></path>
+<path d="M30 80C30 62 100 56 156 47Q200 40 244 47C300 56 370 62 370 80" stroke="url(#mt)" stroke-width=".8" stroke-dasharray="1 4" stroke-linecap="round"></path>
+<g fill="url(#mt)" stroke="#2a2a2c" stroke-width=".5">
+<path d="M197.500 2h5v8h8v5h-8v12h-5V15h-8v-5h8z"></path><circle cx="200" cy="12" r="2" fill="#17181a"></circle>
+<path class="st" d="M150 30l1.8 4.2L156 36l-4.2 1.8L150 42l-1.8-4.2L144 36l4.2-1.8z"></path>
+<path class="st" d="M250 30l1.8 4.2L256 36l-4.2 1.8L250 42l-1.8-4.2L244 36l4.2-1.8z"></path>
+<path class="st" d="M96 41l1.5 3.5L101 46l-3.5 1.5L96 51l-1.5-3.5L91 46l3.5-1.5z"></path>
+<path class="st" d="M304 41l1.5 3.5L308 46l-3.5 1.5L304 51l-1.5-3.5L301 46l3.5-1.5z"></path>
+<circle cx="200" cy="36" r="2.2"></circle><circle cx="186" cy="34" r="1.2"></circle><circle cx="214" cy="34" r="1.2"></circle>
+</g></svg><i class="cn a">✦</i><i class="cn b">✦</i><i class="cn c">✦</i><i class="cn d">✦</i>
+    <div class="banner" id="banner" title="Click to set banner (video or image)">
+      <span class="hint" id="bh" hidden>tap to change banner</span>
+    </div>
+    <div class="avwrap" id="avwrap" title="Click to set avatar (video or image)">
+      <div class="av" id="av"></div>
+      <svg class="deco" viewBox="0 0 104 104" fill="none" stroke="#d8d2c6" stroke-width="1.2">
+        <circle cx="52" cy="52" r="46" stroke-dasharray="1.5 4" stroke-linecap="round"></circle>
+        <circle cx="52" cy="52" r="49.5" opacity=".6"></circle>
+        <g transform="translate(78 8) rotate(18)" fill="#e9e4d8" stroke="#6f6a60" stroke-width=".8">
+          <path d="M-2-14h4v8h7v4h-7v14h-4v-14h-7v-4h7z"></path>
+          <circle cx="0" cy="-5" r="1.4" fill="#6f6a60"></circle>
+        </g>
+      </svg>
+      <div class="status"><i></i></div>
+    </div>
+
+    <div class="body">
+      <div class="name" id="name"></div>
+      <div class="handle" id="handle"></div>
+      <div class="badges"><span class="badge">♱ original</span><span class="badge">night owl</span></div>
+      <div class="sec"><h2>About me</h2><p id="bio"></p></div>
+      <div class="sec"><h2>Member since</h2><p id="since"></p></div>
+      <div class="sec"><h2>Links</h2><div class="links" id="links"></div></div>
+      <div class="sec ed" id="ed" hidden><h2>Edit profile</h2>
+        <input id="i-name" placeholder="display name"><input id="i-handle" placeholder="@handle ✦ pronouns"><input id="i-since" placeholder="member since">
+        <textarea id="i-bio" rows="3" placeholder="about me"></textarea>
+        <textarea id="i-links" rows="3" placeholder="links, one per line: label | https://..."></textarea>
+        <p style="color:var(--dim);font-size:.85rem;margin-top:6px">Tap the banner or avatar to swap in a video or image.</p>
+      </div>
+    </div>
+  </div>
+  <section class="show"><h2><span class="live"></span>episodes</h2>
+    <video id="player" controls playsinline preload="metadata" hidden></video>
+    <div id="ptitle"></div>
+    <div id="eplist"></div>
+    <button id="addep" hidden>+ add episode</button>
+  </section>
+  <section class="show"><h2>tweets</h2>
+    <div id="composer" hidden><textarea id="tw-in" rows="3" maxlength="280" placeholder="what’s happening?"></textarea>
+      <div><span id="tw-n">280</span><button id="tw-go">tweet</button></div></div>
+    <div id="tw-list"></div>
+  </section>
+</main>
+<script>
+var SRC="<!DOCTYPE html>\n"+document.documentElement.outerHTML;
+var $=function(i){return document.getElementById(i)};
+var state=JSON.parse($("state").textContent);
+state.episodes=state.episodes||[];state.posts=state.posts||[];var cur=0;var pend={avatar:null,banner:null},editing=false,claudeArtifact=null,claudeAssets=null;
+function put(el,url,type){
+  el.querySelectorAll("video,img").forEach(function(n){n.remove()});
+  var m;
+  if((type||"").indexOf("video")===0){m=document.createElement("video");m.autoplay=m.loop=m.muted=m.playsInline=true;m.setAttribute("playsinline","")}
+  else m=document.createElement("img");
+  m.src=url;el.prepend(m);
+}
+function render(){
+  $("name").textContent=state.name;$("handle").textContent=state.handle;
+  $("since").textContent=state.since;$("bio").textContent=state.bio;
+  var L=$("links");L.textContent="";
+  state.links.forEach(function(l){
+    if(!/^(https?:\/\/|#)/.test(l.url))return;
+    var a=document.createElement("a");a.href=l.url;a.textContent=l.label;a.rel="noopener";a.target="_blank";L.appendChild(a);
+  });
+  if(state.avatar)put($("av"),state.avatar.url,state.avatar.type);
+  if(state.banner)put($("banner"),state.banner.url,state.banner.type);
+}
+function renderEps(){
+  var P=$("player"),Lst=$("eplist");Lst.textContent="";
+  var all=state.episodes;
+  if(!all.length){var e=document.createElement("div");e.className="empty";e.textContent="no episodes yet. check back soon.";Lst.appendChild(e);P.hidden=true;$("ptitle").textContent="";return}
+  if(cur>=all.length)cur=0;
+  all.forEach(function(ep,i){
+    var d=document.createElement("div");d.className="ep"+(i===cur?" on":"");
+    var n=document.createElement("b");n.textContent=String(i+1).padStart(2,"0");
+    var t=document.createElement("span");t.textContent=ep.title;
+    d.append(n,t);
+    if(editing){var x=document.createElement("button");x.textContent="✕";x.onclick=function(ev){ev.stopPropagation();state.episodes.splice(i,1);renderEps()};d.appendChild(x)}
+    d.onclick=function(){cur=i;renderEps();P.play&&P.play().catch(function(){})};
+    Lst.appendChild(d);
+  });
+  var c=all[cur];$("ptitle").textContent=c.title;P.hidden=false;
+  if(P.getAttribute("data-src")!==c.url){P.setAttribute("data-src",c.url);P.src=c.url}
+}
+function renderTw(){
+  var L=$("tw-list");L.textContent="";
+  if(!state.posts.length){var e=document.createElement("div");e.className="empty";e.textContent="no tweets yet.";L.appendChild(e);return}
+  state.posts.slice().reverse().forEach(function(p,ri){
+    var i=state.posts.length-1-ri;
+    var d=document.createElement("div");d.className="tw";
+    var t=document.createElement("p");t.textContent=p.text;
+    var m=document.createElement("small");m.textContent=new Date(p.t).toLocaleString([],{dateStyle:"medium",timeStyle:"short"});
+    if(editing){var x=document.createElement("button");x.textContent="✕";x.onclick=function(){state.posts.splice(i,1);renderTw()};d.appendChild(x)}
+    d.append(t,m);L.appendChild(d);
+  });
+}
+$("tw-in").addEventListener("input",function(){$("tw-n").textContent=280-this.value.length});
+$("tw-go").onclick=function(){
+  if(!claudeArtifact)return;
+  var v=$("tw-in").value.trim();if(!v)return;
+  state.posts.push({text:v,t:Date.now()});
+  $("save").onclick();
+};
+function setEditing(on){
+  if(!claudeArtifact)return;
+  editing=on;document.body.classList.toggle("editing",on);
+  $("ed").hidden=!on;renderTw();$("addep").hidden=!on;renderEps();$("bh").hidden=!on;$("edit").hidden=on;$("save").hidden=!on;$("cancel").hidden=!on;
+  if(on){
+    $("i-name").value=state.name;$("i-handle").value=state.handle;$("i-since").value=state.since;$("i-bio").value=state.bio;
+    $("i-links").value=state.links.map(function(l){return l.label+" | "+l.url}).join("\n");
+  }
+}
+function pick(key,target){
+  var inp=document.createElement("input");inp.type="file";inp.accept="video/*,image/*";
+  inp.onchange=function(){var f=inp.files[0];if(!f)return;pend[key]=f;put(target,URL.createObjectURL(f),f.type)};
+  inp.click();
+}
+$("banner").addEventListener("click",function(){if(editing&&claudeAssets)pick("banner",$("banner"))});
+$("avwrap").addEventListener("click",function(){if(editing&&claudeAssets)pick("avatar",$("av"))});
+$("addep").onclick=function(){
+  if(!claudeAssets)return;
+  var inp=document.createElement("input");inp.type="file";inp.accept="video/*";
+  inp.onchange=function(){
+    var f=inp.files[0];if(!f)return;
+    if(f.size>20*1024*1024){alert("That file is over 20 MB. Trim or compress it first.");return}
+    var t=prompt("Episode title?",f.name.replace(/\.[^.]+$/,""));if(t===null)return;
+    var ep={title:t.trim()||"untitled",url:URL.createObjectURL(f),type:f.type,_f:f};
+    state.episodes.push(ep);cur=state.episodes.length-1;renderEps();
+  };inp.click();
+};
+$("edit").onclick=function(){setEditing(true)};
+$("cancel").onclick=function(){location.reload()};
+$("save").onclick=async function(){
+  if(!claudeArtifact)return;
+  var btn=$("save");btn.textContent="saving…";btn.disabled=true;
+  try{
+    for(var k of ["avatar","banner"]){
+      if(pend[k]){var r=await claudeAssets.upload(pend[k]);state[k]={url:r.url,type:pend[k].type}}
+    }
+    for(var ep of state.episodes){
+      if(ep._f){var r2=await claudeAssets.upload(ep._f);ep.url=r2.url;delete ep._f}
+    }
+    if(editing){state.name=$("i-name").value.trim()||state.name;state.handle=$("i-handle").value.trim();
+    state.since=$("i-since").value.trim();state.bio=$("i-bio").value.trim();
+    state.links=$("i-links").value.split("\n").map(function(x){var p=x.split("|");return{label:p[0].trim(),url:(p[1]||"").trim()}}).filter(function(l){return l.label&&l.url})}
+    var json=JSON.stringify(state,function(k,v){return k==="_f"?undefined:v}).replace(/</g,"\\u003c");
+    var out=SRC.replace(/(<script type="application\/json" id="state">)[\s\S]*?(<\/script>)/,function(m,a,b){return a+json+b});
+    await claudeArtifact.publish(out);
+  }catch(e){btn.textContent="save";btn.disabled=false;alert("Couldn’t save: "+(e&&e.message||e))}
+};
+render();renderEps();renderTw();
+
+/* Owner-only editing: the edit/upload/tweet controls stay hidden unless the
+   person viewing is the owner of this page. Visitors only ever see the
+   read-only page. */
+(async function(){
+  try{
+    if(!window.claude||!claude.use)return;
+    var u=await claude.use("user");
+    if(!(u&&u.isOwner()))return;
+    var a=await claude.use("artifact");
+    if(!a)return;
+    claudeArtifact=a;
+    claudeAssets=await claude.use("assets");
+    $("bar").hidden=false;
+    $("composer").hidden=false;
+  }catch(e){}
+})();
+</script></body></html>

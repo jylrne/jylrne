@@ -85,7 +85,7 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
-<div id="bar" hidden><button id="edit">edit</button><button id="save" hidden>save</button><button id="cancel" hidden>cancel</button></div>
+<div id="bar" hidden><button id="edit">edit</button><button id="save" hidden>save</button><button id="cancel" hidden>cancel</button><button id="out">log out</button></div>
 <script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she/her","since":"forever","bio":"hello, this is my little corner of the internet. nobody else lives here.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":null,"banner":null,"episodes":[],"posts":[]}</script>
 <main>
   <div class="top">
@@ -146,12 +146,30 @@ input[type=file]{display:none}
       <div><span id="tw-n">280</span><button id="tw-go">tweet</button></div></div>
     <div id="tw-list"></div>
   </section>
+  <div class="foot"><a href="#" id="login" style="color:inherit;text-decoration:none">✦</a></div>
 </main>
 <script>
-var SRC="<!DOCTYPE html>\n"+document.documentElement.outerHTML;
+var host=location.hostname,isGH=/\.github\.io$/.test(host);
+var OWNER=isGH?host.split(".")[0]:"jylrne",REPO=isGH?(location.pathname.split("/")[1]||OWNER+".github.io"):"jylrne";
+var API="https://api.github.com/repos/"+OWNER+"/"+REPO+"/contents/";
+var TOKEN="";try{TOKEN=localStorage.getItem("jy_token")||""}catch(e){}
 var $=function(i){return document.getElementById(i)};
 var state=JSON.parse($("state").textContent);
-state.episodes=state.episodes||[];state.posts=state.posts||[];var cur=0;var pend={avatar:null,banner:null},editing=false,claudeArtifact=null,claudeAssets=null;
+state.episodes=state.episodes||[];state.posts=state.posts||[];
+var cur=0,pend={avatar:null,banner:null},pendU={},editing=false;
+function gh(path,opt){
+  opt=opt||{};var h={"Authorization":"Bearer "+TOKEN,"Accept":"application/vnd.github+json"};
+  if(opt.body)h["Content-Type"]="application/json";opt.headers=h;
+  return fetch(API+path,opt).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.message||r.status);return j})});
+}
+function fileB64(f){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(String(r.result).split(",")[1])};r.onerror=function(){rej(new Error("couldn’t read file"))};r.readAsDataURL(f)})}
+function utf8b64(s){var b=new TextEncoder().encode(s),o="";for(var i=0;i<b.length;i+=8192)o+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(o)}
+function b64utf8(s){var bin=atob(s.replace(/\s/g,"")),b=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return new TextDecoder().decode(b)}
+async function upFile(f){
+  var name="uploads/"+Date.now()+"-"+f.name.replace(/[^\w.\-]+/g,"_");
+  await gh(name,{method:"PUT",body:JSON.stringify({message:"upload "+f.name,content:await fileB64(f),branch:"main"})});
+  return name;
+}
 function put(el,url,type){
   el.querySelectorAll("video,img").forEach(function(n){n.remove()});
   var m;
@@ -167,8 +185,8 @@ function render(){
     if(!/^(https?:\/\/|#)/.test(l.url))return;
     var a=document.createElement("a");a.href=l.url;a.textContent=l.label;a.rel="noopener";a.target="_blank";L.appendChild(a);
   });
-  if(state.avatar)put($("av"),state.avatar.url,state.avatar.type);
-  if(state.banner)put($("banner"),state.banner.url,state.banner.type);
+  if(state.avatar)put($("av"),state.avatar._b||state.avatar.url,state.avatar.type);
+  if(state.banner)put($("banner"),state.banner._b||state.banner.url,state.banner.type);
 }
 function renderEps(){
   var P=$("player"),Lst=$("eplist");Lst.textContent="";
@@ -184,8 +202,8 @@ function renderEps(){
     d.onclick=function(){cur=i;renderEps();P.play&&P.play().catch(function(){})};
     Lst.appendChild(d);
   });
-  var c=all[cur];$("ptitle").textContent=c.title;P.hidden=false;
-  if(P.getAttribute("data-src")!==c.url){P.setAttribute("data-src",c.url);P.src=c.url}
+  var c=all[cur],u=c._b||c.url;$("ptitle").textContent=c.title;P.hidden=false;
+  if(P.getAttribute("data-src")!==u){P.setAttribute("data-src",u);P.src=u}
 }
 function renderTw(){
   var L=$("tw-list");L.textContent="";
@@ -199,15 +217,8 @@ function renderTw(){
     d.append(t,m);L.appendChild(d);
   });
 }
-$("tw-in").addEventListener("input",function(){$("tw-n").textContent=280-this.value.length});
-$("tw-go").onclick=function(){
-  if(!claudeArtifact)return;
-  var v=$("tw-in").value.trim();if(!v)return;
-  state.posts.push({text:v,t:Date.now()});
-  $("save").onclick();
-};
 function setEditing(on){
-  if(!claudeArtifact)return;
+  if(!TOKEN)return;
   editing=on;document.body.classList.toggle("editing",on);
   $("ed").hidden=!on;renderTw();$("addep").hidden=!on;renderEps();$("bh").hidden=!on;$("edit").hidden=on;$("save").hidden=!on;$("cancel").hidden=!on;
   if(on){
@@ -217,58 +228,69 @@ function setEditing(on){
 }
 function pick(key,target){
   var inp=document.createElement("input");inp.type="file";inp.accept="video/*,image/*";
-  inp.onchange=function(){var f=inp.files[0];if(!f)return;pend[key]=f;put(target,URL.createObjectURL(f),f.type)};
+  inp.onchange=function(){var f=inp.files[0];if(!f)return;
+    if(f.size>20*1024*1024){alert("That file is over 20 MB. Trim or compress it first.");return}
+    pend[key]=f;pendU[key]=URL.createObjectURL(f);put(target,pendU[key],f.type)};
   inp.click();
 }
-$("banner").addEventListener("click",function(){if(editing&&claudeAssets)pick("banner",$("banner"))});
-$("avwrap").addEventListener("click",function(){if(editing&&claudeAssets)pick("avatar",$("av"))});
+async function doSave(){
+  if(!TOKEN)return false;
+  var btn=$("save"),old=btn.textContent;btn.textContent="saving…";btn.disabled=true;$("tw-go").disabled=true;
+  try{
+    for(var k of ["avatar","banner"]){
+      if(pend[k]){var p=await upFile(pend[k]);state[k]={url:p,type:pend[k].type,_b:pendU[k]};pend[k]=null}
+    }
+    for(var ep of state.episodes){
+      if(ep._f){ep.url=await upFile(ep._f);delete ep._f}
+    }
+    if(editing){state.name=$("i-name").value.trim()||state.name;state.handle=$("i-handle").value.trim();
+      state.since=$("i-since").value.trim();state.bio=$("i-bio").value.trim();
+      state.links=$("i-links").value.split("\n").map(function(x){var q=x.split("|");return{label:q[0].trim(),url:(q[1]||"").trim()}}).filter(function(l){return l.label&&l.url})}
+    var json=JSON.stringify(state,function(k,v){return k.charAt(0)==="_"?undefined:v}).replace(/</g,"\\u003c");
+    var file=await gh("index.html?ref=main");
+    var html=b64utf8(file.content);
+    var out=html.replace(/(<script type="application\/json" id="state">)[\s\S]*?(<\/script>)/,function(m,a,b){return a+json+b});
+    await gh("index.html",{method:"PUT",body:JSON.stringify({message:"update from site",content:utf8b64(out),sha:file.sha,branch:"main"})});
+    alert("Saved! It will show on your live site in about a minute.");
+    if(editing)setEditing(false);
+    render();renderTw();renderEps();
+    return true;
+  }catch(e){alert("Couldn’t save: "+(e&&e.message||e));return false}
+  finally{btn.textContent=old;btn.disabled=false;$("tw-go").disabled=false}
+}
+$("tw-in").addEventListener("input",function(){$("tw-n").textContent=280-this.value.length});
+$("tw-go").onclick=async function(){
+  if(!TOKEN)return;
+  var v=$("tw-in").value.trim();if(!v)return;
+  state.posts.push({text:v,t:Date.now()});
+  var ok=await doSave();
+  if(ok){$("tw-in").value="";$("tw-n").textContent="280"}else state.posts.pop();
+  renderTw();
+};
+$("banner").addEventListener("click",function(){if(editing)pick("banner",$("banner"))});
+$("avwrap").addEventListener("click",function(){if(editing)pick("avatar",$("av"))});
 $("addep").onclick=function(){
-  if(!claudeAssets)return;
   var inp=document.createElement("input");inp.type="file";inp.accept="video/*";
   inp.onchange=function(){
     var f=inp.files[0];if(!f)return;
     if(f.size>20*1024*1024){alert("That file is over 20 MB. Trim or compress it first.");return}
     var t=prompt("Episode title?",f.name.replace(/\.[^.]+$/,""));if(t===null)return;
-    var ep={title:t.trim()||"untitled",url:URL.createObjectURL(f),type:f.type,_f:f};
-    state.episodes.push(ep);cur=state.episodes.length-1;renderEps();
+    var b=URL.createObjectURL(f);
+    state.episodes.push({title:t.trim()||"untitled",url:b,_b:b,type:f.type,_f:f});cur=state.episodes.length-1;renderEps();
   };inp.click();
 };
 $("edit").onclick=function(){setEditing(true)};
 $("cancel").onclick=function(){location.reload()};
-$("save").onclick=async function(){
-  if(!claudeArtifact)return;
-  var btn=$("save");btn.textContent="saving…";btn.disabled=true;
-  try{
-    for(var k of ["avatar","banner"]){
-      if(pend[k]){var r=await claudeAssets.upload(pend[k]);state[k]={url:r.url,type:pend[k].type}}
-    }
-    for(var ep of state.episodes){
-      if(ep._f){var r2=await claudeAssets.upload(ep._f);ep.url=r2.url;delete ep._f}
-    }
-    if(editing){state.name=$("i-name").value.trim()||state.name;state.handle=$("i-handle").value.trim();
-    state.since=$("i-since").value.trim();state.bio=$("i-bio").value.trim();
-    state.links=$("i-links").value.split("\n").map(function(x){var p=x.split("|");return{label:p[0].trim(),url:(p[1]||"").trim()}}).filter(function(l){return l.label&&l.url})}
-    var json=JSON.stringify(state,function(k,v){return k==="_f"?undefined:v}).replace(/</g,"\\u003c");
-    var out=SRC.replace(/(<script type="application\/json" id="state">)[\s\S]*?(<\/script>)/,function(m,a,b){return a+json+b});
-    await claudeArtifact.publish(out);
-  }catch(e){btn.textContent="save";btn.disabled=false;alert("Couldn’t save: "+(e&&e.message||e))}
+$("save").onclick=doSave;
+$("out").onclick=function(){try{localStorage.removeItem("jy_token")}catch(e){}location.reload()};
+$("login").onclick=async function(e){
+  e.preventDefault();if(TOKEN)return;
+  var t=prompt("Paste your GitHub token");if(!t)return;
+  TOKEN=t.trim();
+  try{await gh("index.html?ref=main");try{localStorage.setItem("jy_token",TOKEN)}catch(_){}location.reload()}
+  catch(err){TOKEN="";alert("That token didn’t work: "+(err&&err.message||err))}
 };
 render();renderEps();renderTw();
-
-/* Owner-only editing: the edit/upload/tweet controls stay hidden unless the
-   person viewing is the owner of this page. Visitors only ever see the
-   read-only page. */
-(async function(){
-  try{
-    if(!window.claude||!claude.use)return;
-    var u=await claude.use("user");
-    if(!(u&&u.isOwner()))return;
-    var a=await claude.use("artifact");
-    if(!a)return;
-    claudeArtifact=a;
-    claudeAssets=await claude.use("assets");
-    $("bar").hidden=false;
-    $("composer").hidden=false;
-  }catch(e){}
-})();
+if(TOKEN){$("bar").hidden=false;$("composer").hidden=false;$("login").hidden=true}
+else $("out").hidden=true;
 </script></body></html>

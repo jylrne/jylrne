@@ -4,6 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>jylrne</title>
 <link rel="icon" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#262626;--card:#1b1d20;--ink:#ece8e1;--dim:#9a968f;--line:#3a3b3d;--accent:#cfc9bd;
@@ -124,6 +125,9 @@ main{position:relative;z-index:1;width:100%;max-width:400px}
 #flrow{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 8px}
 #flrow button{font:inherit;font-size:.95rem;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:4px 16px;cursor:pointer}
 #flrow button.on{background:#8fa3b8;border-color:#8fa3b8;color:#14202b}
+#ep-q{width:100%;font:inherit;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}
+#eplist{max-height:440px;overflow-y:auto}
+.more{display:block;margin:10px auto 0;font:inherit;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:4px 18px;cursor:pointer}
 .cml{max-height:340px;overflow-y:auto}
 @media (min-width:600px){main{max-width:520px}.top h1{font-size:2.8rem}}
 @media (min-width:960px){
@@ -147,7 +151,7 @@ input[type=file]{display:none}
 </head>
 <body>
 <div id="bar" hidden><button id="edit">edit</button><button id="save" hidden>save</button><button id="cancel" hidden>cancel</button><button id="out">log out</button></div>
-<script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she/her","since":"forever","bio":"hello, this is my little corner of the internet. nobody else lives here.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":null,"banner":null,"episodes":[],"posts":[],"badges":["♱ original","night owl"],"fb":"https://jylrne-8ecaf-default-rtdb.asia-southeast1.firebasedatabase.app"}</script>
+<script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she/her","since":"forever","bio":"hello, this is my little corner of the internet. nobody else lives here.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":null,"banner":null,"episodes":[],"posts":[]}</script>
 <div id="bgm" aria-hidden="true"></div>
 <div class="notes" id="notes" aria-hidden="true"></div>
 <main>
@@ -210,6 +214,7 @@ input[type=file]{display:none}
     <div id="cm" hidden><h2>comments <span id="cm-n"></span></h2>
       <textarea id="cm-in" rows="2" maxlength="500" placeholder="add a comment"></textarea>
       <button id="cm-go" type="button">post</button><div id="cm-list"></div></div>
+    <input id="ep-q" placeholder="search episodes" hidden>
     <div id="eplist"></div>
     <button id="addep" hidden>+ add episode</button>
     <div class="sec ed" id="epform" hidden><h2 id="ef-h">New episode</h2>
@@ -233,7 +238,7 @@ var TOKEN="";try{TOKEN=localStorage.getItem("jy_token")||""}catch(e){}
 var $=function(i){return document.getElementById(i)};
 var state=JSON.parse($("state").textContent);
 state.episodes=state.episodes||[];state.posts=state.posts||[];
-var cur=0,pend={avatar:null,banner:null},pendU={},editing=false,twFile=null;
+var twLim=10,cur=0,pend={avatar:null,banner:null},pendU={},editing=false,twFile=null;
 function gh(path,opt){
   opt=opt||{};var h={"Authorization":"Bearer "+TOKEN,"Accept":"application/vnd.github+json"};
   if(opt.body)h["Content-Type"]="application/json";opt.headers=h;
@@ -250,7 +255,7 @@ async function upFile(f){
 function mk(url,type,ctl){
   var m;
   if((type||"").indexOf("video")===0){m=document.createElement("video");m.controls=true;m.playsInline=true;m.setAttribute("playsinline","");m.preload="metadata"}
-  else m=document.createElement("img");
+  else{m=document.createElement("img");m.loading="lazy";m.decoding="async"}
   m.src=url;return m;
 }
 function put(el,url,type){
@@ -278,12 +283,14 @@ function render(){
 function renderEps(){
   var P=$("player"),Lst=$("eplist");Lst.textContent="";
   var all=state.episodes;
-  if(!all.length){var e=document.createElement("div");e.className="empty";e.textContent="no episodes yet. check back soon.";Lst.appendChild(e);P.hidden=true;$("ptitle").textContent="";$("pdesc").textContent="";return}
+  if(!all.length){var e=document.createElement("div");e.className="empty";e.textContent="no episodes yet. check back soon.";Lst.appendChild(e);P.hidden=true;$("ep-q").hidden=true;$("ptitle").textContent="";$("pdesc").textContent="";return}
+  $("ep-q").hidden=all.length<2;var q=$("ep-q").value.trim().toLowerCase(),shown=0;
   if(cur>=all.length)cur=0;
   all.forEach(function(ep,i){
+    if(q&&((ep.title||"")+" "+(ep.desc||"")).toLowerCase().indexOf(q)<0)return;shown++;
     var d=document.createElement("div");d.className="ep"+(i===cur?" on":"");
     var th=document.createElement("div");th.className="th";
-    var tu=ep._tb||ep.thumb;if(tu){var im=document.createElement("img");im.src=tu;th.appendChild(im)}
+    var tu=ep._tb||ep.thumb;if(tu){var im=document.createElement("img");im.loading="lazy";im.decoding="async";im.src=tu;th.appendChild(im)}
     var n=document.createElement("b");n.textContent=String(i+1).padStart(2,"0");th.appendChild(n);
     var inf=document.createElement("div");inf.className="ei";
     var t=document.createElement("div");t.className="et";t.textContent=ep.title;inf.appendChild(t);
@@ -295,6 +302,7 @@ function renderEps(){
     d.onclick=function(){cur=i;renderEps();P.play&&P.play().catch(function(){})};
     Lst.appendChild(d);
   });
+  if(!shown){var ne=document.createElement("div");ne.className="empty";ne.textContent="no episodes match.";Lst.appendChild(ne)}
   var c=all[cur],u=c._b||c.url;$("ptitle").textContent=c.title;$("pdesc").textContent=c.desc||"";P.hidden=false;
   P.poster=c._tb||c.thumb||"";engage(c);
   if(P.getAttribute("data-src")!==u){P.setAttribute("data-src",u);P.src=u}
@@ -303,6 +311,7 @@ function renderTw(){
   var L=$("tw-list");L.textContent="";
   if(!state.posts.length){var e=document.createElement("div");e.className="empty";e.textContent="no tweets yet.";L.appendChild(e);return}
   state.posts.slice().reverse().forEach(function(p,ri){
+    if(ri>=twLim)return;
     var i=state.posts.length-1-ri;
     var d=document.createElement("div");d.className="tw";
     var t=document.createElement("p");t.textContent=p.text;
@@ -315,6 +324,7 @@ function renderTw(){
       cb.onclick=function(){if(box){box.remove();box=null;return}box=cmWidget("tw"+p.t);d.appendChild(box)};d.appendChild(cb)}
     L.appendChild(d);
   });
+  if(state.posts.length>twLim){var mb=document.createElement("button");mb.className="more";mb.textContent="show more";mb.onclick=function(){twLim+=10;renderTw()};L.appendChild(mb)}
 }
 function setEditing(on){
   if(!TOKEN)return;
@@ -550,8 +560,10 @@ try{FOL=localStorage.getItem("jy_fol")==="1";NOT=localStorage.getItem("jy_not")=
 function sv(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function marks(){var m=0;state.posts.forEach(function(p){if(p.t>m)m=p.t});return{e:state.episodes.length?epId(state.episodes[state.episodes.length-1]):"",p:m}}
 if(!seen.init){var m0=marks();seen={e:m0.e,p:m0.p,init:1};sv("jy_seen",JSON.stringify(seen))}
+function fmt(n){n=n||0;if(n>=1e6)return(Math.floor(n/1e5)/10).toString().replace(/\.0$/,"")+"M";
+  if(n>=1e5)return Math.floor(n/1e3)+"k";if(n>=1e3)return(Math.floor(n/100)/10).toString().replace(/\.0$/,"")+"k";return String(n)}
 function paintFol(){
-  $("fol").textContent=TOKEN?"followers: "+(FC===null?0:FC):(FOL?"following ✓":"follow")+(FC===null?"":" · "+FC);$("fol").classList.toggle("on",FOL&&!TOKEN);
+  $("fol").textContent=TOKEN?"followers: "+fmt(FC):(FOL?"following ✓":"follow")+(FC===null?"":" · "+fmt(FC));$("fol").classList.toggle("on",FOL&&!TOKEN);
   $("nt").hidden=!FOL;$("nt").textContent=NOT?"notifications: on":"notifications: off";$("nt").classList.toggle("on",NOT);
 }
 function notify(t,b){if(!NOT||!("Notification" in window)||Notification.permission!=="granted")return;try{new Notification(t,{body:b})}catch(e){}}
@@ -584,6 +596,7 @@ function pollSite(){
     if(mk.e!==seen.e||np.length){seen={e:mk.e,p:mk.p,init:1};sv("jy_seen",JSON.stringify(seen));renderEps();renderTw()}
   }).catch(function(){});
 }
+$("ep-q").oninput=function(){renderEps()};
 var ef={i:-1,v:null,t:null};
 function openEf(i){
   ef={i:i,v:null,t:null};var ep=i>=0?state.episodes[i]:null;

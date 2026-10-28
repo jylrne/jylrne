@@ -3,7 +3,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>jylrne</title>
-<link rel="icon" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet">
 <style>
 :root{
@@ -137,13 +136,14 @@ main{position:relative;z-index:1;width:100%;max-width:400px}
   #lv-cm{grid-column:2;grid-row:2/span 2}
   #lv-cm .cml{max-height:420px}
 }
+.foot span,.foot a{display:inline-block;margin:0 .6em;font-size:1rem;opacity:.7;-webkit-tap-highlight-color:transparent;user-select:none}
 .foot{margin-top:16px;text-align:center;color:var(--dim);font-size:.8rem;font-style:italic}
 input[type=file]{display:none}
 </style>
 </head>
 <body>
 <div id="bar" hidden><button id="edit">edit</button><button id="save" hidden>save</button><button id="cancel" hidden>cancel</button><button id="out">log out</button></div>
-<script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she/her","since":"forever","bio":"hello, this is my little corner of the internet. nobody else lives here.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":{"url":"uploads/1793109830428-IMG_9728.jpeg","type":"image/jpeg"},"banner":{"url":"uploads/1793109836037-IMG_9651.jpeg","type":"image/jpeg"},"episodes":[],"posts":[],"badges":["♱"],"fb":"https://jylrne-8ecaf-default-rtdb.asia-southeast1.firebasedatabase.app"}</script>
+<script type="application/json" id="state">{"name":"Jei","handle":"@jylrne ✦ she/her","since":"forever","bio":"hello, this is my little corner of the internet. nobody else lives here.","links":[{"label":"instagram","url":"#"},{"label":"discord","url":"#"},{"label":"youtube","url":"#"}],"avatar":null,"banner":null,"episodes":[],"posts":[]}</script>
 <div id="bgm" aria-hidden="true"></div>
 <div class="notes" id="notes" aria-hidden="true"></div>
 <main>
@@ -218,7 +218,7 @@ input[type=file]{display:none}
       <div><span id="tw-n">280</span><button id="tw-att" type="button">+ photo / video</button><button id="tw-go">tweet</button></div></div>
     <div id="tw-list"></div>
   </section>
-  <div class="foot"><a href="#" id="login" style="color:inherit;text-decoration:none">✦</a></div>
+  <div class="foot"><span>✦</span><span>✦</span><a href="#" id="login" style="color:inherit;text-decoration:none">✦</a><span>✦</span><span>✦</span></div>
 </main>
 <script>
 var host=location.hostname,isGH=/\.github\.io$/.test(host);
@@ -569,8 +569,10 @@ $("edit").onclick=function(){setEditing(true)};
 $("cancel").onclick=function(){location.reload()};
 $("save").onclick=doSave;
 $("out").onclick=function(){try{localStorage.removeItem("jy_token")}catch(e){}location.reload()};
+var loginN=0,loginT;
 $("login").onclick=async function(e){
   e.preventDefault();if(TOKEN)return;
+  loginN++;clearTimeout(loginT);loginT=setTimeout(function(){loginN=0},3000);if(loginN<9)return;loginN=0;
   var t=prompt("Paste your GitHub token");if(!t)return;
   TOKEN=t.trim();
   try{await gh("index.html?ref=main");try{localStorage.setItem("jy_token",TOKEN)}catch(_){}location.reload()}
@@ -582,6 +584,6 @@ e.style.left=(Math.random()*96)+"%";e.style.fontSize=(16+Math.random()*20)+"px";
 e.style.animationDuration=(9+Math.random()*9)+"s";e.style.animationDelay=(-Math.random()*16)+"s";n.appendChild(e)}})();
 (function(){var h=location.hash.slice(4);state.episodes.forEach(function(e,i){if(h&&epId(e)===h)cur=i})})();
 render();renderEps();renderTw();renderLive();
-if(TOKEN){$("bar").hidden=false;$("composer").hidden=false;$("login").hidden=true}
+if(TOKEN){$("bar").hidden=false;$("composer").hidden=false}
 else $("out").hidden=true;
 </script></body></html>

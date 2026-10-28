@@ -121,6 +121,9 @@ main{position:relative;z-index:1;width:100%;max-width:400px}
 .notes i{position:absolute;bottom:-40px;font-style:normal;color:var(--accent);opacity:0;animation:fl linear infinite;text-shadow:0 0 8px rgba(255,255,255,.25)}
 @keyframes fl{0%{transform:translate(0,0) rotate(-12deg);opacity:0}12%{opacity:.5}50%{transform:translate(18px,-55vh) rotate(12deg)}88%{opacity:.5}100%{transform:translate(-14px,-115vh) rotate(-12deg);opacity:0}}
 @media (prefers-reduced-motion:reduce){.notes{display:none}}
+#flrow{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 8px}
+#flrow button{font:inherit;font-size:.95rem;background:rgba(127,127,127,.12);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:4px 16px;cursor:pointer}
+#flrow button.on{background:#8fa3b8;border-color:#8fa3b8;color:#14202b}
 .cml{max-height:340px;overflow-y:auto}
 @media (min-width:600px){main{max-width:520px}.top h1{font-size:2.8rem}}
 @media (min-width:960px){
@@ -184,6 +187,7 @@ input[type=file]{display:none}
       <div class="name" id="name"></div>
       <div class="handle" id="handle"></div>
       <div class="badges" id="badges"></div>
+      <div id="flrow" hidden><button id="fol" type="button">follow</button><button id="nt" type="button" hidden>notifications: off</button></div>
       <div class="sec"><h2>About me</h2><p id="bio"></p></div>
       <div class="sec"><h2>Links</h2><div class="links" id="links"></div></div>
       <div class="sec ed" id="ed" hidden><h2>Edit profile</h2>
@@ -499,7 +503,7 @@ function pollCam(){
     else if(!alive&&viewCam)stopView();
   }).catch(function(){});
 }
-function startView(id){stopView(true);viewCam=id;var v=lvVideo();renderLive();connectView(id,v)}
+function startView(id){if(id!==viewCam)notify("jylrne","live now ✦");stopView(true);viewCam=id;var v=lvVideo();renderLive();connectView(id,v)}
 function stopView(keep){viewCam="";if(vPC){try{vPC.close()}catch(e){}vPC=null}if(!keep)renderLive()}
 async function connectView(id,v){
   if(viewCam!==id)return;
@@ -540,7 +544,46 @@ $("lv-heart").onclick=function(){
 };
 if(TOKEN)setInterval(function(){if(!lvId||!FBU())return;
   fetch(FBU()+"/hearts/"+lvId+".json?shallow=true").then(function(r){return r.json()}).then(function(o){lvN=o?Object.keys(o).length:0;$("lv-heart").textContent="♥ "+lvN}).catch(function(){})},10000);
-else setInterval(pollCam,5000);
+else{setInterval(pollCam,5000);setInterval(pollSite,60000)}
+var FOL=false,NOT=false,seen={},FC=null;
+try{FOL=localStorage.getItem("jy_fol")==="1";NOT=localStorage.getItem("jy_not")==="1";seen=JSON.parse(localStorage.getItem("jy_seen")||"{}")}catch(e){}
+function sv(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function marks(){var m=0;state.posts.forEach(function(p){if(p.t>m)m=p.t});return{e:state.episodes.length?epId(state.episodes[state.episodes.length-1]):"",p:m}}
+if(!seen.init){var m0=marks();seen={e:m0.e,p:m0.p,init:1};sv("jy_seen",JSON.stringify(seen))}
+function paintFol(){
+  $("fol").textContent=TOKEN?"followers: "+(FC===null?0:FC):(FOL?"following ✓":"follow")+(FC===null?"":" · "+FC);$("fol").classList.toggle("on",FOL&&!TOKEN);
+  $("nt").hidden=!FOL;$("nt").textContent=NOT?"notifications: on":"notifications: off";$("nt").classList.toggle("on",NOT);
+}
+function notify(t,b){if(!NOT||!("Notification" in window)||Notification.permission!=="granted")return;try{new Notification(t,{body:b})}catch(e){}}
+$("fol").onclick=function(){
+  if(TOKEN)return;FOL=!FOL;sv("jy_fol",FOL?"1":"0");if(FC!==null)FC+=FOL?1:-1;
+  if(FBU())(FOL?fb("follows/"+vid,"PUT",1):fb("follows/"+vid,"DELETE")).catch(function(){});
+  if(!FOL){NOT=false;sv("jy_not","0")}paintFol();
+};
+$("nt").onclick=function(){
+  if(NOT){NOT=false;sv("jy_not","0");paintFol();return}
+  if(!("Notification" in window)){alert("This browser doesn’t support notifications. On iPhone, add the site to your Home Screen first.");return}
+  Notification.requestPermission().then(function(p){
+    if(p==="granted"){NOT=true;sv("jy_not","1");paintFol();notify("jylrne","notifications are on ✦")}
+    else alert("Notifications are blocked. Allow them in your browser’s site settings.")});
+};
+function loadFol(){
+  fetch(FBU()+"/follows.json?shallow=true").then(function(r){return r.json()}).then(function(o){
+    o=o||{};FC=Object.keys(o).length;
+    if(o[vid]&&!FOL){FOL=true;sv("jy_fol","1")}
+    paintFol()}).catch(function(){});
+}
+function pollSite(){
+  fetch(location.pathname+"?_="+Date.now()).then(function(r){return r.text()}).then(function(t){
+    var m=t.match(/<script type="application\/json" id="state">([\s\S]*?)<\/script>/);if(!m)return;
+    var st=JSON.parse(m[1]);state.episodes=st.episodes||[];state.posts=st.posts||[];
+    var mk=marks();
+    if(mk.e&&mk.e!==seen.e){var le=state.episodes[state.episodes.length-1];notify("jylrne","new episode: "+(le.title||""))}
+    var np=state.posts.filter(function(p){return p.t>seen.p});
+    if(np.length)notify("jylrne","new post: "+String(np[np.length-1].text||"").slice(0,80));
+    if(mk.e!==seen.e||np.length){seen={e:mk.e,p:mk.p,init:1};sv("jy_seen",JSON.stringify(seen));renderEps();renderTw()}
+  }).catch(function(){});
+}
 var ef={i:-1,v:null,t:null};
 function openEf(i){
   ef={i:i,v:null,t:null};var ep=i>=0?state.episodes[i]:null;
@@ -591,6 +634,9 @@ e.style.left=(Math.random()*96)+"%";e.style.fontSize=(16+Math.random()*20)+"px";
 e.style.animationDuration=(9+Math.random()*9)+"s";e.style.animationDelay=(-Math.random()*16)+"s";n.appendChild(e)}})();
 (function(){var h=location.hash.slice(4);state.episodes.forEach(function(e,i){if(h&&epId(e)===h)cur=i})})();
 render();renderEps();renderTw();renderLive();
+$("flrow").hidden=!FBU();paintFol();
+if(TOKEN)$("nt").style.display="none";
+if(FBU())loadFol();
 if(TOKEN){$("bar").hidden=false;$("composer").hidden=false}
 else $("out").hidden=true;
 </script></body></html>

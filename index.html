@@ -204,7 +204,7 @@ input[type=file]{display:none}
     <div id="pdesc"></div>
     <div id="acts" hidden><button id="a-like" title="like">★</button><button id="a-dis" title="dislike">✕</button><button id="a-share">share</button><button id="a-full">full view</button><a id="a-dl" download>download</a></div>
     <div id="cm" hidden><h2>comments <span id="cm-n"></span></h2>
-      <input id="cm-name" placeholder="your name" maxlength="30"><textarea id="cm-in" rows="2" maxlength="500" placeholder="add a comment"></textarea>
+      <textarea id="cm-in" rows="2" maxlength="500" placeholder="add a comment"></textarea>
       <button id="cm-go" type="button">post</button><div id="cm-list"></div></div>
     <div id="eplist"></div>
     <button id="addep" hidden>+ add episode</button>
@@ -324,7 +324,7 @@ function setEditing(on){
 function pick(key,target){
   var inp=document.createElement("input");inp.type="file";inp.accept="video/*,image/*";
   inp.onchange=function(){var f=inp.files[0];if(!f)return;
-    if(f.size>20*1024*1024){alert("That file is over 20 MB. Trim or compress it first.");return}
+    if(f.size>50*1024*1024){alert("That file is over 50 MB. Trim or compress it first.");return}
     pend[key]=f;pendU[key]=URL.createObjectURL(f);put(target,pendU[key],f.type)};
   inp.click();
 }
@@ -363,7 +363,7 @@ $("tw-att").onclick=function(){
   if(twFile){clearAtt();return}
   var inp=document.createElement("input");inp.type="file";inp.accept="video/*,image/*";
   inp.onchange=function(){var f=inp.files[0];if(!f)return;
-    if(f.size>20*1024*1024){alert("That file is over 20 MB. Trim or compress it first.");return}
+    if(f.size>50*1024*1024){alert("That file is over 50 MB. Trim or compress it first.");return}
     twFile=f;var pv=$("tw-prev");pv.textContent="";pv.appendChild(mk(URL.createObjectURL(f),f.type));pv.hidden=false;$("tw-att").textContent="✕ remove"};
   inp.click();
 };
@@ -385,6 +385,12 @@ $("banner").addEventListener("click",function(){if(editing)pick("banner",$("bann
 $("avwrap").addEventListener("click",function(){if(editing)pick("avatar",$("av"))});
 var engId="",vid="",V={l:0,d:0,m:0};
 try{vid=localStorage.getItem("jy_vid")||"";if(!vid){vid="v"+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("jy_vid",vid)}}catch(e){vid=vid||"v"+Math.random().toString(36).slice(2)}
+var ALIAS="";
+try{ALIAS=localStorage.getItem("jy_alias")||""}catch(e){}
+if(!ALIAS){var AW=["velvet","pale","lace","midnight","moth","silver","sleepy","glass","dusk","ghost","thorn","candle"],AN=["moth","raven","star","lily","bat","crow","lamb","bell","doll","fawn","ribbon","cat"];
+  ALIAS=AW[Math.floor(Math.random()*AW.length)]+" "+AN[Math.floor(Math.random()*AN.length)]+" "+(10+Math.floor(Math.random()*90));
+  try{localStorage.setItem("jy_alias",ALIAS)}catch(e){}}
+$("cm-in").placeholder="comment as "+ALIAS;
 function FBU(){var u=state.fb||"";return /^https:\/\//.test(u)?u:""}
 function epId(ep){return ep.id||String(ep.url||"").replace(/[^\w]/g,"_").slice(-40)}
 function fb(path,method,body){return fetch(FBU()+"/"+path+".json",{method:method||"GET",body:body===undefined?undefined:JSON.stringify(body)}).then(function(r){return r.json()})}
@@ -415,10 +421,9 @@ function loadCm(id){
 }
 function cmWidget(id){
   var w=document.createElement("div");w.className="tcm";
-  var n=document.createElement("input");n.placeholder="your name";n.maxLength=30;
-  var t=document.createElement("textarea");t.rows=2;t.maxLength=500;t.placeholder="add a comment";
+  var t=document.createElement("textarea");t.rows=2;t.maxLength=500;t.placeholder="comment as "+ALIAS;
   var b=document.createElement("button");b.type="button";b.className="cmgo";b.textContent="post";
-  var L=document.createElement("div");L.className="cml";w.append(n,t,b,L);
+  var L=document.createElement("div");L.className="cml";w.append(t,b,L);
   function load(){fb("comments/"+id).then(function(o){o=o||{};L.textContent="";
     Object.keys(o).sort().reverse().forEach(function(k){var c=o[k],d=document.createElement("div");d.className="cmt";
       if(TOKEN){var x=document.createElement("button");x.textContent="✕";x.onclick=function(){fb("comments/"+id+"/"+k,"DELETE").then(load)};d.appendChild(x)}
@@ -426,7 +431,7 @@ function cmWidget(id){
       var tm=document.createElement("small");tm.textContent=new Date(c.t).toLocaleDateString([],{dateStyle:"medium"});
       var p=document.createElement("p");p.textContent=String(c.x||"").slice(0,500);d.append(nm,tm,p);L.appendChild(d)})}).catch(function(){})}
   b.onclick=function(){var x=t.value.trim();if(!x)return;b.disabled=true;
-    fb("comments/"+id,"POST",{n:(n.value.trim()||"anon").slice(0,30),x:x.slice(0,500),t:Date.now()}).then(function(){t.value="";load()}).catch(function(){alert("Couldn’t post. Try again.")}).then(function(){b.disabled=false})};
+    fb("comments/"+id,"POST",{n:ALIAS,x:x.slice(0,500),t:Date.now()}).then(function(){t.value="";load()}).catch(function(){alert("Couldn’t post. Try again.")}).then(function(){b.disabled=false})};
   load();var iv=setInterval(function(){if(!document.body.contains(w)){if(w.isConnected===false&&w.dataset.s)clearInterval(iv);return}load()},8000);w.dataset.s="1";return w;
 }
 function vote(v){
@@ -444,7 +449,7 @@ $("a-share").onclick=function(){
 $("a-full").onclick=function(){var P=$("player");
   if(P.requestFullscreen)P.requestFullscreen();else if(P.webkitEnterFullscreen)P.webkitEnterFullscreen();else if(P.webkitRequestFullscreen)P.webkitRequestFullscreen()};
 $("cm-go").onclick=function(){
-  var x=$("cm-in").value.trim(),n=$("cm-name").value.trim()||"anon",id=engId;if(!x||!id||!FBU())return;
+  var x=$("cm-in").value.trim(),n=ALIAS,id=engId;if(!x||!id||!FBU())return;
   var b=$("cm-go");b.disabled=true;
   fb("comments/"+id,"POST",{n:n.slice(0,30),x:x.slice(0,500),t:Date.now()}).then(function(){$("cm-in").value="";loadCm(id)}).catch(function(){alert("Couldn’t post. Try again.")}).then(function(){b.disabled=false});
 };
@@ -546,7 +551,7 @@ function openEf(i){
 function efPick(kind){
   var inp=document.createElement("input");inp.type="file";inp.accept=kind==="v"?"video/*":"image/*";
   inp.onchange=function(){var f=inp.files[0];if(!f)return;
-    if(f.size>20*1024*1024){alert("That file is over 20 MB. Trim or compress it first.");return}
+    if(f.size>50*1024*1024){alert("That file is over 50 MB. Trim or compress it first.");return}
     ef[kind]=f;$("ef-s").textContent=(ef.v?"video: "+ef.v.name:"")+(ef.v&&ef.t?"  ·  ":"")+(ef.t?"thumbnail: "+ef.t.name:"")};
   inp.click();
 }
